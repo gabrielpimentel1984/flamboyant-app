@@ -16,6 +16,7 @@ public/                    o app (o que vai para o ar)
   js/runtime.js            login + banco (Supabase) + downloads + leitura da foto
 netlify/functions/
   ler-requisicao.mjs       recebe a foto, confere o login e pede ao Claude para ler a folha
+  almoxarifado.mjs         lê o saldo do almoxarifado na planilha (coluna ESTOQUE ATUAL)
 supabase/schema.sql        tabelas, regras de acesso e histórico de alterações
 ```
 
@@ -31,16 +32,25 @@ supabase/schema.sql        tabelas, regras de acesso e histórico de alteraçõe
    - `SUPABASE_URL` = a mesma URL do passo 2
    - `SUPABASE_ANON_KEY` = a mesma chave anon do passo 2
 7. Em console.anthropic.com, definir um **limite mensal de gasto**.
+8. **Saldo do almoxarifado ao vivo**: na planilha *Estoque Almoxarifado* → *Arquivo → Compartilhar → Publicar na Web* →
+   escolher a aba **Almoxarifado** e o formato **CSV** → *Publicar* → copiar o link e colocar no Netlify como `ALMOX_CSV_URL`.
+   O app lê a coluna *ESTOQUE ATUAL* a cada 10 minutos. Os nomes da coluna *ITENS* precisam continuar iguais aos usados nas fichas técnicas.
 
 ## Criar o acesso de uma pessoa
 
-1. Supabase → *Authentication → Users → Add user* (e-mail e senha provisória).
+A equipe entra com **usuário e senha** (sem e-mail). Por baixo, o usuário `daniel` vira `daniel@equipe.flamboyant.local`.
+
+1. Supabase → *Authentication → Users → Add user → Create new user*:
+   e-mail `daniel@equipe.flamboyant.local`, senha, e marcar **Auto Confirm User**.
 2. Supabase → *SQL Editor*:
    ```sql
-   insert into public.perfis (id, nome, papel)
-     select id, 'Daniel', 'equipe' from auth.users where email = 'email@do.daniel';
+   insert into public.perfis (id, nome, papel, telas)
+     select id, 'Daniel', 'equipe', array['req','est'] from auth.users where email = 'daniel@equipe.flamboyant.local';
    ```
-   `papel`: `admin` (Gabriel, Ricardo) ou `equipe`.
+   `papel`: `admin` (Gabriel, Ricardo) ou `equipe`. `telas` vazio = vê tudo.
+   Códigos: `prod` pedido da Yetsy · `leo` produção do Leonardo · `cmp` compras · `req` requisição · `ab` abastecimento · `est` estoques.
+3. Para trocar a senha de alguém da equipe: *Authentication → Users* → o usuário → *Reset password* não funciona sem e-mail;
+   use *Update user* e defina a senha nova.
 
 Quem tem login sem perfil cadastrado não vê nem grava nada.
 
