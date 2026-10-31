@@ -34,13 +34,19 @@ supabase/schema.sql        tabelas, regras de acesso e histórico de alteraçõe
 
 ## Criar o acesso de uma pessoa
 
-1. Supabase → *Authentication → Users → Add user* (e-mail e senha provisória).
+A equipe entra com **usuário e senha** (sem e-mail). Por baixo, o usuário `daniel` vira `daniel@equipe.flamboyant.local`.
+
+1. Supabase → *Authentication → Users → Add user → Create new user*:
+   e-mail `daniel@equipe.flamboyant.local`, senha, e marcar **Auto Confirm User**.
 2. Supabase → *SQL Editor*:
    ```sql
-   insert into public.perfis (id, nome, papel)
-     select id, 'Daniel', 'equipe' from auth.users where email = 'email@do.daniel';
+   insert into public.perfis (id, nome, papel, telas)
+     select id, 'Daniel', 'equipe', array['req','est'] from auth.users where email = 'daniel@equipe.flamboyant.local';
    ```
-   `papel`: `admin` (Gabriel, Ricardo) ou `equipe`.
+   `papel`: `admin` (Gabriel, Ricardo) ou `equipe`. `telas` vazio = vê tudo.
+   Códigos: `prod` pedido da Yetsy · `leo` produção do Leonardo · `cmp` compras · `req` requisição · `ab` abastecimento · `est` estoques.
+3. Para trocar a senha de alguém da equipe: *Authentication → Users* → o usuário → *Reset password* não funciona sem e-mail;
+   use *Update user* e defina a senha nova.
 
 Quem tem login sem perfil cadastrado não vê nem grava nada.
 

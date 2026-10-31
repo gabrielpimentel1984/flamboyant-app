@@ -9,6 +9,14 @@
   window.SB = sb;
 
   /* ---------------- Login ---------------- */
+  /* A equipe entra com usuário (ex.: daniel). Por baixo, o Supabase guarda como daniel@<DOMINIO_USUARIOS>.
+     Quem tem e-mail de verdade (Gabriel, Ricardo) pode digitar o e-mail completo. */
+  const DOMINIO = cfg.DOMINIO_USUARIOS || "equipe.flamboyant.local";
+  function paraEmail(u) {
+    u = String(u || "").trim().toLowerCase();
+    if (!u) return "";
+    return u.includes("@") ? u : u.replace(/\s+/g, ".") + "@" + DOMINIO;
+  }
   let liberar;
   const autenticado = new Promise(r => (liberar = r));
   let sessao = null;
@@ -21,28 +29,28 @@
       el.className = "login";
       el.innerHTML =
         '<div class="eyebrow">Cozinha · Flamboyant</div><h1>Entrar</h1>' +
-        '<label>E-mail<input type="email" id="lg-email" autocomplete="username" required></label>' +
+        '<label>Usuário<input type="text" id="lg-email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required></label>' +
         '<label>Senha<input type="password" id="lg-senha" autocomplete="current-password" required></label>' +
         '<button class="btn primary" id="lg-ok" type="button">Entrar</button>' +
         '<button class="btn sm" id="lg-esqueci" type="button">Esqueci a senha</button>' +
         '<p class="erro" id="lg-erro"></p>';
       document.body.prepend(el);
       const ok = async () => {
-        const email = el.querySelector("#lg-email").value.trim();
+        const email = paraEmail(el.querySelector("#lg-email").value);
         const password = el.querySelector("#lg-senha").value;
         const er = el.querySelector("#lg-erro");
         er.textContent = "";
-        if (!email || !password) { er.textContent = "Preencha e-mail e senha."; return; }
+        if (!email || !password) { er.textContent = "Preencha usuário e senha."; return; }
         const { error } = await sb.auth.signInWithPassword({ email, password });
-        if (error) er.textContent = "E-mail ou senha incorretos.";
+        if (error) er.textContent = "Usuário ou senha incorretos.";
       };
       el.querySelector("#lg-ok").onclick = ok;
       el.querySelector("#lg-senha").onkeydown = e => { if (e.key === "Enter") ok(); };
       el.querySelector("#lg-esqueci").onclick = async () => {
-        const email = el.querySelector("#lg-email").value.trim();
+        const digitado = el.querySelector("#lg-email").value.trim();
         const er = el.querySelector("#lg-erro");
-        if (!email) { er.textContent = "Escreva seu e-mail acima primeiro."; return; }
-        await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin });
+        if (!digitado.includes("@")) { er.textContent = "Peça ao Gabriel ou ao Ricardo para criar uma senha nova para você."; return; }
+        await sb.auth.resetPasswordForEmail(digitado, { redirectTo: location.origin });
         er.textContent = "Se o e-mail estiver cadastrado, chega um link para criar nova senha.";
       };
     }
@@ -58,7 +66,7 @@
     if (el) el.hidden = true;
     const wrap = document.querySelector(".wrap");
     if (wrap) wrap.hidden = false;
-    let nome = s.user.email;
+    let nome = (s.user.email || "").replace("@" + DOMINIO, "");
     try {
       const { data } = await sb.from("perfis").select("nome,papel,telas").eq("id", s.user.id).maybeSingle();
       if (data && data.nome) nome = data.nome;
