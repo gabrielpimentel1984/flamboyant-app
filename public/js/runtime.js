@@ -112,6 +112,20 @@
     }
     const sair = document.getElementById("sair");
     if (sair) sair.onclick = async () => { await sb.auth.signOut(); location.reload(); };
+    const box = document.getElementById("senha-box");
+    const tr = document.getElementById("trocar-senha");
+    if (tr && box) {
+      const msg = document.getElementById("senha-msg"), inp = document.getElementById("senha-nova");
+      tr.onclick = () => { box.hidden = !box.hidden; msg.textContent = ""; inp.value = ""; if (!box.hidden) inp.focus(); };
+      document.getElementById("senha-cancelar").onclick = () => { box.hidden = true; };
+      document.getElementById("senha-salvar").onclick = async () => {
+        const nova = inp.value;
+        if (nova.length < 6) { msg.textContent = "A senha precisa ter pelo menos 6 caracteres."; return; }
+        const { error } = await sb.auth.updateUser({ password: nova });
+        if (error) { msg.textContent = /same|different/i.test(error.message || "") ? "Use uma senha diferente da atual." : "Não foi possível trocar agora. Tente de novo."; return; }
+        inp.value = ""; msg.textContent = "Senha trocada ✓"; setTimeout(() => { box.hidden = true; }, 1500);
+      };
+    }
     sb.auth.getSession().then(({ data }) => { if (data.session) entrou(data.session); else telaLogin(); });
     sb.auth.onAuthStateChange((ev, s) => {
       if (ev === "SIGNED_IN" && s && !sessao) entrou(s);
