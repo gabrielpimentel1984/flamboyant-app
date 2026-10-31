@@ -577,6 +577,7 @@ details.pcard.atr .psum small{color:var(--urg);font-weight:600}
         <input type="hidden" id="req-num">
         <label>Data<input type="date" id="req-data"></label>
         <label class="req-tipo-l">Movimentação<select id="req-tipo">
+          <option value="">— escolha a movimentação —</option>
           <option value="entrada">Entrada na câmara fria (produção)</option>
           <option value="saida_rest">Saída da câmara → Restaurante</option>
           <option value="saida_bar">Saída da câmara → Bar Piscina</option>
@@ -1574,9 +1575,14 @@ let DUP_OK=false;
 function abrirConferencia(d){
   $("#req-p2").hidden=false;$("#req-itens").textContent="";DUP_OK=false;$("#req-lancar").textContent="Lançar no estoque";
   $("#req-num").value=d.numero||"";$("#req-data").value=d.data||hojeIso();
-  $("#req-tipo").value=TIPOS_REQ[d.tipo]?d.tipo:"entrada";
+  $("#req-tipo").value=TIPOS_REQ[d.tipo]?d.tipo:"";
   $("#req-de").value=d.de==="bar"?"bar":"restaurante";$("#req-onde").value=LOCAIS[d.onde]?d.onde:"camara";$("#req-motivo").value=d.motivo||"";reqTipo();
-  const av=[];if(!TIPOS_REQ[d.tipo])av.push("Não deu para ver qual opção foi marcada: confira a movimentação.");
+  const av=[];
+  if(!TIPOS_REQ[d.tipo]&&d.setor){const s=String(d.setor).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+    const t=/bar|piscina/.test(s)?"saida_bar":/restaurante|cozinha/.test(s)?"saida_rest":/producao|leonardo|camara/.test(s)?"entrada":"";
+    if(t){$("#req-tipo").value=t;reqTipo();av.push("O quadro de movimentação não ficou claro: usei o Setor escrito (\""+d.setor+"\"). Confira.")}}
+  if(!TIPOS_REQ[$("#req-tipo").value])av.push("Não deu para ver qual movimentação foi marcada: escolha no campo Movimentação antes de lançar.");
+  if(d.tipo_duvida)av.push("O quadro marcado e o Setor escrito não batem: confira a movimentação.");
   if(!d.data)av.push("Data não lida: confira.");
   if(d.tipo==="devolucao"&&!d.de)av.push("Confira de onde veio a devolução.");
   if(d.tipo==="descarte"&&!d.onde)av.push("Confira onde foi o descarte.");
@@ -1593,9 +1599,11 @@ async function lerFoto(){
   const nomes=nomesItens(),antigos=Object.keys(EST.renomes||{});
   const prompt=`A imagem é a foto de uma "Requisição de estoque" de papel da cozinha do restaurante Flamboyant, preenchida à mão.
 Leia:
-1) A data escrita no campo "Data" (dia/mês/ano). Responda no formato AAAA-MM-DD; se o ano não estiver claro use ${hojeIso().slice(0,4)}. Se não der para ler, null.
+1) A data escrita no campo "Data:" (dia/mês/ano), ao lado da palavra Data. Ignore outras datas anotadas soltas no papel. Responda no formato AAAA-MM-DD; se o ano não estiver claro use ${hojeIso().slice(0,4)}. Se não der para ler, null.
 2) (a folha não tem número; responda "numero": null)
-3) Qual das 5 opções do quadro está marcada: "entrada" (ENTRADA NA CÂMARA FRIA), "saida_rest" (SAÍDA DA CÂMARA → RESTAURANTE), "saida_bar" (SAÍDA DA CÂMARA → BAR PISCINA), "devolucao" (DEVOLUÇÃO PARA A CÂMARA) ou "descarte" (DESCARTE / PERDA). Se nenhuma ou mais de uma, null.
+3) Qual das 5 opções do quadro de movimentação está marcada (com X, ✓, risco ou quadrado pintado): "entrada" (ENTRADA NA CÂMARA FRIA - produção do Leonardo), "saida_rest" (SAÍDA DA CÂMARA → RESTAURANTE), "saida_bar" (SAÍDA DA CÂMARA → BAR PISCINA), "devolucao" (DEVOLUÇÃO PARA A CÂMARA) ou "descarte" (DESCARTE / PERDA). Algumas opções podem estar impressas bem clarinhas (cinza): continuam valendo. Se nenhuma ou mais de uma estiver marcada, null.
+   Leia também o que está escrito à mão no campo "Setor:" e devolva em "setor" (texto como está, ou null).
+   Se o quadro não estiver claro, use o Setor para decidir: Restaurante/Cozinha → "saida_rest"; Bar/Piscina/Bar Piscina → "saida_bar"; Produção/Leonardo/Câmara → "entrada". Se o quadro e o Setor discordarem, use o quadro e marque "tipo_duvida": true.
    Se for devolução, "de": "restaurante" ou "bar" (quadrado marcado em "vindo de"). Se for descarte, "onde": "camara", "restaurante" ou "bar", e "motivo": o texto escrito.
    Folhas antigas podem ter "Entrada de produção" (= "entrada") ou "Transferência" com De/Para: Câmara→Restaurante = "saida_rest", Câmara→Bar = "saida_bar", Restaurante ou Bar→Câmara = "devolucao" com "de".
 4) Todos os itens que têm quantidade escrita no quadro de quantidade. Ignore itens com o quadro vazio, zero ou riscado.
@@ -1605,7 +1613,7 @@ Nomes antigos que podem aparecer impressos e o equivalente: ${antigos.map(k=>k+"
 Se não tiver certeza do item ou do número, marque "duvida": true.
 5) O que estiver escrito em "Outros itens", como texto livre.
 Responda só com JSON neste formato:
-{"numero":"125","data":"2026-10-23","tipo":"saida_rest","de":null,"onde":null,"motivo":null,"itens":[{"nome":"Filé mignon 200g","qtd":20,"lido":"Filé mignon 200g – 20","duvida":false}],"outros":["texto"]}`;
+{"numero":"125","data":"2026-10-23","tipo":"saida_rest","setor":"Restaurante","tipo_duvida":false,"de":null,"onde":null,"motivo":null,"itens":[{"nome":"Filé mignon 200g","qtd":20,"lido":"Filé mignon 200g – 20","duvida":false}],"outros":["texto"]}`;
   REQ.ctl=new AbortController();$("#req-ler").disabled=true;$("#req-parar").hidden=false;
   st.textContent="Lendo a requisição… pode levar até um minuto.";
   try{
@@ -1620,6 +1628,7 @@ async function lancarReq(){
   const tipo=$("#req-tipo").value,data=$("#req-data").value,de=$("#req-de").value,onde=$("#req-onde").value,motivo=$("#req-motivo").value.trim(),num=$("#req-num").value.trim();
   const rows=[...document.querySelectorAll("#req-itens .req-row")];
   const itens=rows.map(r=>[r.querySelector("select").value,Number(r.querySelector("input").value)||0]).filter(i=>i[0]&&i[1]>0);
+  if(!TIPOS_REQ[tipo]){toast("Escolha a movimentação (entrada, saída, devolução ou descarte).");$("#req-tipo").focus();return}
   if(!data){toast("Informe a data.");return}
   if(!itens.length){toast("Nenhum item com quantidade para lançar.");return}
   if(rows.length>itens.length){toast("Há linhas sem item ou sem quantidade. Corrija ou remova antes de lançar.");return}
