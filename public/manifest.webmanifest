@@ -1,0 +1,10 @@
+{
+  "name": "Flamboyant · Cozinha",
+  "short_name": "Flamboyant",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#EEF2F4",
+  "theme_color": "#0B6A86",
+  "lang": "pt-BR",
+  "icons": []
+}
