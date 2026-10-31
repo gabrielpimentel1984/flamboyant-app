@@ -16,6 +16,7 @@ public/                    o app (o que vai para o ar)
   js/runtime.js            login + banco (Supabase) + downloads + leitura da foto
 netlify/functions/
   ler-requisicao.mjs       recebe a foto, confere o login e pede ao Claude para ler a folha
+  almoxarifado.mjs         lê o saldo do almoxarifado na planilha (coluna ESTOQUE ATUAL)
 supabase/schema.sql        tabelas, regras de acesso e histórico de alterações
 ```
 
@@ -31,6 +32,9 @@ supabase/schema.sql        tabelas, regras de acesso e histórico de alteraçõe
    - `SUPABASE_URL` = a mesma URL do passo 2
    - `SUPABASE_ANON_KEY` = a mesma chave anon do passo 2
 7. Em console.anthropic.com, definir um **limite mensal de gasto**.
+8. **Saldo do almoxarifado ao vivo**: na planilha *Estoque Almoxarifado* → *Arquivo → Compartilhar → Publicar na Web* →
+   escolher a aba **Almoxarifado** e o formato **CSV** → *Publicar* → copiar o link e colocar no Netlify como `ALMOX_CSV_URL`.
+   O app lê a coluna *ESTOQUE ATUAL* a cada 10 minutos. Os nomes da coluna *ITENS* precisam continuar iguais aos usados nas fichas técnicas.
 
 ## Criar o acesso de uma pessoa
 

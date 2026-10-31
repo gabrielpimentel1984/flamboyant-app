@@ -86,6 +86,22 @@
       if (telas.length === 1 && typeof abrir === "function") abrir(telas[0]);
     }
     liberar(s);
+    atualizaAlmox();
+    setInterval(atualizaAlmox, 10 * 60 * 1000);
+  }
+
+  /* Saldo do almoxarifado ao vivo (planilha Estoque Almoxarifado). Sem planilha configurada, fica o saldo gravado no app. */
+  async function atualizaAlmox() {
+    if (!sessao) return;
+    try {
+      const r = await fetch("/.netlify/functions/almoxarifado", { headers: { Authorization: "Bearer " + sessao.access_token } });
+      if (!r.ok) return;
+      const novo = await r.json();
+      if (!novo || !novo.itens || !Object.keys(novo.itens).length) return;
+      /* ALMOX é a variável do app (index.html) */
+      ALMOX.itens = novo.itens; ALMOX.data = novo.data; ALMOX.hora = novo.hora; ALMOX.fonte = novo.fonte;
+      if (typeof refreshTudo === "function") refreshTudo();
+    } catch (e) { /* sem internet: mantém o último saldo */ }
   }
 
   function iniciaLogin() {
