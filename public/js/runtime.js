@@ -88,6 +88,32 @@
     liberar(s);
     atualizaAlmox();
     setInterval(atualizaAlmox, 10 * 60 * 1000);
+    atualizaVendas();
+    setInterval(atualizaVendas, 30 * 60 * 1000);
+  }
+
+  /* Vendas do dia, lidas sozinhas dos relatórios "VENDAS dd.mm.aaaa" da pasta do Drive do Ricardo */
+  async function atualizaVendas() {
+    if (!sessao) return;
+    try {
+      const r = await fetch("/.netlify/functions/vendas?dias=20", { headers: { Authorization: "Bearer " + sessao.access_token } });
+      if (!r.ok) return;
+      const novo = await r.json();
+      if (!novo || typeof novo !== "object" || !Object.keys(novo).length) return;
+      /* state é a variável do app (index.html) */
+      state.docs = Object.assign({}, state.docs, novo);
+      state.db = true; state.loaded = true;
+      const ds = Object.keys(state.docs).sort();
+      if (ds.length && !state.docs[state.date]) {
+        state.date = ds[ds.length - 1];
+        const inp = document.getElementById("data"); if (inp) inp.value = state.date;
+      }
+      const info = document.getElementById("home-ab-info");
+      if (info && ds.length && typeof br === "function") info.textContent = "Última venda lançada: " + br(ds[ds.length - 1]);
+      if (typeof renderChips === "function") renderChips();
+      if (typeof renderAb === "function") renderAb();
+      if (typeof refreshTudo === "function") refreshTudo();
+    } catch (e) { /* sem internet: mantém as últimas vendas */ }
   }
 
   /* Saldo do almoxarifado ao vivo (planilha Estoque Almoxarifado). Sem planilha configurada, fica o saldo gravado no app. */
