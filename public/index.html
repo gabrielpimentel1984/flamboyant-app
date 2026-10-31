@@ -370,7 +370,8 @@ details.pcard.atr .psum small{color:var(--urg);font-weight:600}
 
 <div class="wrap">
   <!-- TELA INICIAL -->
-  <div id="userbar" class="userbar" hidden><span id="userbar-nome"></span><button type="button" class="btn sm" id="sair">Sair</button></div>
+  <div id="userbar" class="userbar" hidden><span id="userbar-nome"></span><span><button type="button" class="btn sm" id="trocar-senha">Trocar senha</button> <button type="button" class="btn sm" id="sair">Sair</button></span></div>
+<div id="senha-box" class="alerta" hidden style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"><label style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:180px">Nova senha (mínimo 6 letras ou números)<input type="password" id="senha-nova" autocomplete="new-password" style="font:1rem var(--f-body);padding:9px 10px;border:1px solid var(--line);border-radius:8px"></label><button type="button" class="btn primary sm" id="senha-salvar">Salvar senha</button><button type="button" class="btn sm" id="senha-cancelar">Cancelar</button><span class="note" id="senha-msg"></span></div>
 <section id="tela-home" class="tela">
     <header>
       <div class="eyebrow">Cozinha · Flamboyant</div>
