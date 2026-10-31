@@ -60,12 +60,23 @@
     if (wrap) wrap.hidden = false;
     let nome = s.user.email;
     try {
-      const { data } = await sb.from("perfis").select("nome,papel").eq("id", s.user.id).maybeSingle();
+      const { data } = await sb.from("perfis").select("nome,papel,telas").eq("id", s.user.id).maybeSingle();
       if (data && data.nome) nome = data.nome;
-      window.APP_USER = { id: s.user.id, email: s.user.email, nome, papel: data && data.papel };
+      window.APP_USER = { id: s.user.id, email: s.user.email, nome, papel: data && data.papel, telas: data && Array.isArray(data.telas) && data.telas.length ? data.telas : null };
     } catch (e) { window.APP_USER = { id: s.user.id, email: s.user.email, nome }; }
     const ub = document.getElementById("userbar");
     if (ub) { ub.hidden = false; document.getElementById("userbar-nome").textContent = "👤 " + nome; }
+    /* telas liberadas para a pessoa (perfis.telas); vazio = todas */
+    const telas = window.APP_USER && window.APP_USER.telas;
+    if (telas) {
+      ["ab", "est", "prod", "leo", "req", "cmp"].forEach(t => {
+        const b = document.getElementById("go-" + t);
+        if (b) b.hidden = !telas.includes(t);
+      });
+      const banner = document.getElementById("home-compra");
+      if (banner && !telas.includes("prod")) banner.style.display = "none";
+      if (telas.length === 1 && typeof abrir === "function") abrir(telas[0]);
+    }
     liberar(s);
   }
 

@@ -2094,6 +2094,7 @@ function renderHome(){
 }
 
 function abrir(tela){
+  if(tela!=="home"&&window.APP_USER&&Array.isArray(APP_USER.telas)&&!APP_USER.telas.includes(tela))tela="home";
   ["home","ab","est","prod","leo","req","cmp"].forEach(t=>{$("#tela-"+t).hidden=(t!==tela)});
   try{history.replaceState(null,"",tela==="home"?location.pathname+location.search:"#"+({ab:"abastecimento",est:"estoques",prod:"pedido",leo:"leonardo",req:"requisicao",cmp:"compras"}[tela]))}catch(e){}
   window.scrollTo(0,0);

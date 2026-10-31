@@ -14,6 +14,10 @@ alter table public.perfis enable row level security;
 drop policy if exists "perfis: ler (logado)" on public.perfis;
 create policy "perfis: ler (logado)" on public.perfis for select to authenticated using (true);
 
+-- telas que a pessoa vê no app (vazio = todas). Códigos: prod (pedido Yetsy), leo (produção Leonardo),
+-- cmp (lista de compras), req (requisição Daniel), ab (abastecimento do dia), est (estoques)
+alter table public.perfis add column if not exists telas text[];
+
 -- função auxiliar: o usuário logado é admin?
 create or replace function public.eh_admin() returns boolean
 language sql stable security definer set search_path = public as $$
@@ -101,5 +105,5 @@ exception when duplicate_object then null; end $$;
 -- 5) Depois de criar cada usuário em Authentication > Users, cadastre o perfil, por exemplo:
 -- insert into public.perfis (id, nome, papel)
 --   select id, 'Gabriel', 'admin' from auth.users where email = 'SEU_EMAIL';
--- insert into public.perfis (id, nome, papel)
---   select id, 'Daniel', 'equipe' from auth.users where email = 'EMAIL_DO_DANIEL';
+-- insert into public.perfis (id, nome, papel, telas)
+--   select id, 'Daniel', 'equipe', array['req','est'] from auth.users where email = 'EMAIL_DO_DANIEL';
