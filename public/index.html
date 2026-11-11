@@ -75,6 +75,8 @@ header p{margin:4px 0 0;color:var(--muted)}
 .est-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
 .est-head b{font-family:var(--f-display);font-size:1.1rem}
 .badge{font:600 .78rem var(--f-num);padding:4px 9px;border-radius:999px;background:var(--accent-soft);color:var(--ink);white-space:nowrap}
+.est-corte{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 10px}
+.est-corte input{font:1rem var(--f-body);padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
 .busca{font:1rem var(--f-body);padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);width:100%}
 .erow{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:baseline;padding:9px 14px;border-bottom:1px solid var(--line)}
 .erow:last-child{border-bottom:0}
@@ -653,6 +655,10 @@ details.pcard.atr .psum small{color:var(--urg);font-weight:600}
       <button class="btn primary" id="est-pdf">Baixar PDF para imprimir</button>
       <button class="btn" id="est-copy">Copiar lista</button>
     </div>
+    <label class="note est-corte">Saldo no fim do dia (deixe vazio para ver o saldo de agora)
+      <input type="date" id="est-corte" aria-label="Ver o saldo no fim de qual dia">
+      <button class="btn sm" id="est-corte-limpa" type="button">Ver saldo de agora</button>
+    </label>
     <input type="search" id="est-busca" class="busca" placeholder="Buscar item…" aria-label="Buscar item no estoque">
     <div class="list" id="est-list"></div>
     <details id="est-mov-box">
@@ -2146,16 +2152,17 @@ function renderMov(){
 /* Saldo = contagem + movimentações (entradas/saídas) − consumo pelas vendas desde EST.baixaDesde */
 const PDV_DO_LOCAL={restaurante:"restaurante",bar:"bar_piscina"};
 function nomeEst(localKey,nome){const a=((EST.alias||{})[localKey]||{});return a[nome]||nome}
-function eventosLocal(localKey){
+function eventosLocal(localKey,corte){
   /* devolve {nome:[{d,t,q}]} com todas as movimentações do item neste local */
   const ev={};const add=(n,d,t,q)=>{(ev[n]=ev[n]||[]).push({d,t,q})};
   const pdv=PDV_DO_LOCAL[localKey];let ateVenda=null,dias=0,ateMov=null;
   if(pdv){const desde=EST.baixaDesde||"9999-12-31";
     Object.keys(state.docs||{}).sort().forEach(d=>{
-      if(d<desde)return;const v=(state.docs[d].vendas||{})[pdv];if(!v)return;dias++;ateVenda=d;
+      if(d<desde||(corte&&d>corte))return;const v=(state.docs[d].vendas||{})[pdv];if(!v)return;dias++;ateVenda=d;
       const t=calc(v);for(const[id,q]of Object.entries(t)){if(q)add(nomeEst(localKey,ITEM[id].nome),d,"Venda",-q)}
     });}
   (EST.movimentacoes||[]).forEach(m=>{
+    if(corte&&m.data>corte)return;
     let sinal=0,rot="";
     if(m.tipo==="ajuste"&&m.local===localKey){m.itens.forEach(([n,q])=>add(n,m.data,m.rotulo||"Ajuste",q));if(!ateMov||m.data>ateMov)ateMov=m.data;return}
     if(m.destino===localKey){sinal=1;rot="Entrada"}else if(m.origem===localKey){sinal=-1;rot="Saída"}else return;
@@ -2163,10 +2170,10 @@ function eventosLocal(localKey){
   });
   return {ev,ateVenda,dias,ateMov};
 }
-function saldoLocal(localKey){
+function saldoLocal(localKey,corte){
   const loc=(EST.locais||{})[localKey]||{secoes:[]};
   const cont=loc.contagem||EST.contagem;
-  const E2=eventosLocal(localKey);const vistos=new Set();
+  const E2=eventosLocal(localKey,corte);const vistos=new Set();
   const mk=(n,base,obs)=>{const evs=(E2.ev[n]||[]).slice().sort((x,y)=>x.d<y.d?-1:x.d>y.d?1:0);
     const linhas=[{d:cont,t:"Contagem",q:base,abs:true},...evs];
     return {n,obs,base,linhas,saldo:base+evs.reduce((a,e)=>a+e.q,0)}};
@@ -2216,11 +2223,11 @@ function renderEst(){
   const list=$("#est-list");list.textContent="";
   document.querySelector("#tela-est .actions").hidden=!loc.secoes.length;
   if(!loc.secoes.length){$("#est-data").textContent="Sem contagem";const d=document.createElement("div");d.className="empty";d.textContent="Ainda não há contagem deste estoque. Assim que ela for enviada, os itens aparecem aqui.";list.appendChild(d);return}
-  const S=saldoLocal(estLocal);
+  const corte=$("#est-corte").value||"";const S=saldoLocal(estLocal,corte);
   const MT=estLocal==="camara"?metasCamara():null;
   const cont=loc.contagem||EST.contagem;
-  const dataRef=S.ate&&S.ate>cont?S.ate:cont;
-  $("#est-data").textContent="Saldo em "+br(dataRef);
+  const dataRef=corte?corte:(S.ate&&S.ate>cont?S.ate:cont);
+  $("#est-data").textContent=(corte?"Saldo no fim de ":"Saldo em ")+br(dataRef);
   {const txt=estTexto(loc,S,dataRef);$("#est-wa").href="https://wa.me/?text="+encodeURIComponent(txt);
    $("#est-copy").onclick=()=>copyText(txt);$("#est-pdf").onclick=()=>estPdf(loc,S,dataRef);}
   const info=document.createElement("p");info.className="note saldo-info";
@@ -2303,6 +2310,8 @@ $("#leo-hoje").onclick=()=>{leoData=hojeIso();renderLeo()};
 document.querySelectorAll("[data-back]").forEach(b=>b.onclick=()=>abrir("home"));
 ["camara","restaurante","bar"].forEach(k=>$("#etab-"+k).onclick=()=>{estLocal=k;renderEst()});
 $("#est-busca").oninput=()=>renderEst();
+$("#est-corte").onchange=()=>renderEst();
+$("#est-corte-limpa").onclick=()=>{$("#est-corte").value="";renderEst()};
 (function(){
   const ds=Object.keys(state.docs||{}).sort();
   if(ds.length)$("#home-ab-info").textContent="Última venda lançada: "+br(ds[ds.length-1]);
